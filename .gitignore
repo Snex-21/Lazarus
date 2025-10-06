@@ -1,0 +1,7 @@
+.env
+__pychache__/
+*pyc 
+venv/
+*.pyc
+.log
+*.session
