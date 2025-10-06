@@ -1,4 +1,4 @@
-FROM jrottenberg/fmpeg:6.0-ubuntu2204
+FROM jrottenberg/ffmpeg:6.0-ubuntu2204
 
 ENV DEBIAN_FRONTEND=noninteractive
 
