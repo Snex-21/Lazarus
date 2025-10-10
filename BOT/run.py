@@ -25,11 +25,11 @@ app = Flask(__name__)
 def home():
     return 'bot funcionando', 200
 
-@app.route(webhook_path, methods=['POST'])
-def webhook():
-    update = request.get_json()
-    bot.process_update(update)
-    return 'ok', 200
+# @app.route(webhook_path, methods=['POST'])
+# def webhook():
+#     update = request.get_json()
+#     bot.process_update(update)
+#     return 'ok', 200
 
 #comando para iniciar /start
 @bot.on_message(filters.command('start'))
@@ -103,3 +103,11 @@ def easter_egg(client, message):
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+    
+    from threading import Thread
+    def run_flask():
+        app.run(host='0.0.0.0', port=port)
+    
+    Thread(target=run_flask).start()
+    
+    bot.run()
