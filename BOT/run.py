@@ -1,4 +1,7 @@
 from pyrogram import Client, filters
+from pyrogram.types import Message
+from flask import Flask, request
+import os
 import main 
 
 #se crea la coneccion al bot
@@ -7,6 +10,25 @@ bot = Client('Lazarus!',
     api_hash=main.api_hash,
     bot_token = main.token,
 )
+
+app = Flask(__name__)
+
+@app.route('/', methods=['GET'])
+def home():
+    return 'bot funcionando', 200
+
+@app.route(f'/{main.token}', methods=['POST'])
+def webhook():
+    update = request.get_json()
+    if update:
+        bot.process_new_updates([update])
+    return 'ok', 200
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    wwebhook_url = f'https://lazarus21.onrender.com/{main.token}'
+    bot.set_webhook(wwebhook_url)
+    app.run(host='0.0.0.0', port=port)
 
 #comando para iniciar /start
 @bot.on_message(filters.command('start'))

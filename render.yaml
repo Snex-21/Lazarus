@@ -1,0 +1,9 @@
+services:
+  -type: web
+  name: lazarus
+  env: python
+  plan: free
+  buildCommand: |
+    apt-get upfate && apt-get install -y ffmpeg
+    pip install -r requirements.txt
+  startCommand: 'python BOT/run.py'
