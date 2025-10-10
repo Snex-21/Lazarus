@@ -3,7 +3,7 @@ services:
   name: lazarus
   env: python
   plan: free
-  pythonVersion: 3.12.0
+  pythonVersion: 3.11.9
   buildCommand: |
     apt-get upfate && apt-get install -y ffmpeg
     pip install -r requirements.txt
