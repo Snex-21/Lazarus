@@ -28,8 +28,7 @@ def home():
 @app.route(webhook_path, methods=['POST'])
 def webhook():
     update = request.get_json()
-    if update:
-        bot.process_update(update)
+    bot.process_update(update)
     return 'ok', 200
 
 #comando para iniciar /start
