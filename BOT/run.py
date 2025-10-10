@@ -12,11 +12,11 @@ bot = Client('Lazarus!',
     bot_token = main.token,
 )
 
-webhook_path = '/webhook'
-app_url = os.environ.get('APP_URL', 'https://pendiente-poner-la-url.onrender.com')
-webhook_url = app_url + webhook_path
+# webhook_path = '/webhook'
+# app_url = os.environ.get('APP_URL', 'https://pendiente-poner-la-url.onrender.com')
+# webhook_url = app_url + webhook_path
 
-r = requests.get(f'https://api.telegram.org/bot{main.token}/setWebhook?url={webhook_url}')
+# r = requests.get(f'https://api.telegram.org/bot{main.token}/setWebhook?url={webhook_url}')
 
 
 app = Flask(__name__)
@@ -102,7 +102,6 @@ def easter_egg(client, message):
 #corro el bot
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
     
     from threading import Thread
     def run_flask():
