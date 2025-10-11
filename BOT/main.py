@@ -12,7 +12,9 @@ token = os.getenv('token_bot')
 
 def tranformacion_image2audio():
     #abro la imagen y la paso en formato RGB
-    photo = Image.open('c:/Users/Usuario/Desktop/lazarus/archivos/imagenes/ultima_imagen.jpg').convert('RGB')
+    base_dir = os.getcwd()
+    imagen_path = os.path.join(base_dir, 'archivos', 'imagenes', 'ultima_imagen.jpg')
+    photo = Image.open(imagen_path).convert('RGB')
     #convierto la imagen en un array
     array = np.array(photo)
     
@@ -46,12 +48,15 @@ def tranformacion_image2audio():
     )
     
     #guardo el audio
-    audio.export('c:/Users/Usuario/Desktop/lazarus/archivos/audios/imagen_audio.mp3', format='mp3')
+    imagen_audio_path = os.path.join(base_dir, 'archivos', 'audios', 'imagen_audio.mp3')
+    audio.export(imagen_audio_path, format='mp3')
 
 # TERMINAR DE DOCUMENTAR
 def transformacion_audio2image():
     #marco el ultimo audio en una variable
-    audio = AudioSegment.from_file('c:/Users/Usuario/Desktop/lazarus/archivos/audios/ultimo_audio.mp3')
+    base_dir = os.getcwd()
+    audio_path = os.path.join(base_dir, 'archivos', 'audios', 'ultima_audio.jpg')
+    audio = AudioSegment.from_file(audio_path)
     
     #transformo los samples del audio en un array
     samples = np.array(audio.get_array_of_samples())
@@ -85,4 +90,5 @@ def transformacion_audio2image():
 
     img = Image.fromarray(img_array.astype(np.uint8))
     #guardo la imagen
-    img.save('c:/Users/Usuario/Desktop/lazarus/archivos/imagenes/audio_imagen.png')
+    audio_imagen_path = os.path.join(base_dir, 'archivos', 'imagenes', 'ultima_imagen.jpg')
+    img.save(audio_imagen_path)
