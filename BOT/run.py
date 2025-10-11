@@ -12,24 +12,11 @@ bot = Client('Lazarus!',
     bot_token = main.token,
 )
 
-# webhook_path = '/webhook'
-# app_url = os.environ.get('APP_URL', 'https://pendiente-poner-la-url.onrender.com')
-# webhook_url = app_url + webhook_path
-
-# r = requests.get(f'https://api.telegram.org/bot{main.token}/setWebhook?url={webhook_url}')
-
-
 app = Flask(__name__)
 
 @app.route('/', methods=['GET'])
 def home():
     return 'bot funcionando', 200
-
-# @app.route(webhook_path, methods=['POST'])
-# def webhook():
-#     update = request.get_json()
-#     bot.process_update(update)
-#     return 'ok', 200
 
 #comando para iniciar /start
 @bot.on_message(filters.command('start'))
@@ -96,8 +83,15 @@ async def recibir_audio(client, message):
 
 @bot.on_message(filters.command('info'))
 def info_command(client, message):
-    message.reply_text('algo')
-    # METER OTRO MENSAJE QUE RECOMIENDE USAR UN COMANDO QUE EXPLICA COMO FUNCIONA EL BOT, ESPECIFICACIONES, LIMITES, INSTRUCCIONES, ETC
+    message.reply_text("Hola, soy Lazarus.\n\n"
+        "Fui creado para experimentar con la conexión entre el sonido y la imagen.\n\n"
+        "Qué hago:\n"
+        "Puedo transformar imágenes (.jpg) en audios (.mp3) (suenan extraños, pero cada uno guarda algo único de la imagen).\n"
+        "También convierto audios (.mp3) en imágenes (a veces abstractas, a veces tipo glitch).\n\n"
+        "Cómo usarme:\n"
+        "Solo enviame una imagen o un audio y esperá mi respuesta.\n\n"
+        "Aclaro que otros formatos aún no fueron testeados, así que lo mejor es usar .jpg (en su defecto png) y .mp3 por ahora.\n\n")
+
 
 @bot.on_message(filters.command('easteregg'))
 def easter_egg(client, message):
