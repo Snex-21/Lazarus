@@ -55,7 +55,7 @@ def tranformacion_image2audio():
 def transformacion_audio2image():
     #marco el ultimo audio en una variable
     base_dir = os.getcwd()
-    audio_path = os.path.join(base_dir, 'archivos', 'audios', 'ultima_audio.mp3')
+    audio_path = os.path.join(base_dir, 'archivos', 'audios', 'ultimo_audio.mp3')
     audio = AudioSegment.from_file(audio_path)
     
     #transformo los samples del audio en un array
