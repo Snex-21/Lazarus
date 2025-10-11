@@ -44,7 +44,9 @@ ultima_foto = None
 def recibir_imagen(client, message):
     global ultima_foto
     #descargo la imagen que paso el usuario
-    ultima_foto = client.download_media(message,'c:/Users/Usuario/Desktop/lazarus/archivos/imagenes/ultima_imagen.jpg')
+    base_dir = os.getcwd()
+    imagen_path = os.path.join(base_dir, 'archivos', 'imagenes', 'ultima_imagen.jpg')
+    ultima_foto = client.download_media(message, imagen_path)
     #mensajito
     message.reply_text('Imagen recibida, ahora te la transformo en audio :)')
 
@@ -55,9 +57,10 @@ def recibir_imagen(client, message):
     message.reply_text('Tu imagen ya fue convertida a audio, esperame un momento que ya te la mando :)')
     
     #mando el audio
+    imagen_audio_path = os.path.join(base_dir, 'archivos', 'audios', 'imagen_audio.mp3')
     client.send_audio(
         chat_id = message.chat.id,
-        audio = 'c:/Users/Usuario/Desktop/lazarus/archivos/audios/imagen_audio.mp3',
+        audio = imagen_audio_path,
         caption = 'tu imagen convertida a audio',
         title = 'imagen convertida en audio',
         performer = 'Lazarus',
@@ -71,7 +74,9 @@ async def recibir_audio(client, message):
     global ultimo_audio
     
     #descargo el ultimo audio
-    ultimo_audio = await client.download_media(message,'c:/Users/Usuario/Desktop/lazarus/archivos/audios/ultimo_audio.mp3')
+    base_dir = os.getcwd()
+    audio_path = os.path.join(base_dir, 'archivos', 'audios', 'ultimo_audio.mp3')
+    ultimo_audio = await client.download_media(message, audio_path)
     
     #mando un mensaje
     await message.reply_text('Audio recibido, ahora lo transformo en imagen :)')
@@ -82,9 +87,10 @@ async def recibir_audio(client, message):
     #mando otro mensaje
     await message.reply_text('Tu audio ya fue transformado en imagen, ahora te la muesto :)')
     #mando la imagen
+    audio_imagen_path = os.path.join(base_dir, 'archivos', 'imagenes', 'audio_imagen.jpg')
     await client.send_photo(
         chat_id = message.chat.id,
-        photo = 'c:/Users/Usuario/Desktop/lazarus/archivos/imagenes/audio_imagen.png',
+        photo = audio_imagen_path,
         caption = 'Tu audio convertido en imagen'
         )
 
