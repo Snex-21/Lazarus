@@ -18,6 +18,7 @@
 - [Pyrogram](https://docs.pyrogram.org/) + [tgcrypto](https://github.com/pyrogram/tgcrypto): para la gestión del bot en Telegram.
 - [Pydub](https://github.com/jiaaro/pydub): para la manipulación de audios (requiere [ffmpeg](https://ffmpeg.org/) instalado).
 - [Pillow](https://python-pillow.org/) y [Numpy](https://numpy.org/): para procesar imágenes.
+- [Flask](https://flask.palletsprojects.com/): Para exponer el bot en la web y permitir alojarlo en un servidor, gestionando solicitudes HTTP si decides integrarlo o desplegarlo online.
 
 ---
 
@@ -74,7 +75,7 @@
 
 ## Uso
 
-- **Comando principal:** `/start` inicia el bot y muestra ayuda básica.
+- **Comando principal:** `/start` inicia el bot.
 - **Comando secundario:** `/info` muestra instrucciones, límites y capacidades del bot (en desarrollo, puede variar).
 - **Interacción:** El bot funciona sin comandos adicionales. Simplemente envía un archivo de audio o una imagen y Lazarus responderá con la conversión correspondiente.
 
@@ -82,8 +83,11 @@
 
 ## Ejemplo de interacción
 
-- **Envía un mp3:** Recibirás una imagen glitch generada a partir de ese audio.
-- **Envía una imagen:** Recibirás un audio distorsionado, generado a partir de los datos binarios RGB de la imagen.
+- **Envía un mp3 y recibirás una imagen glitch generada a partir de ese audio:**
+![Audio a imagen](lazarus.jpg)
+
+- **Envía una imagen y recibirás un audio distorsionado, generado a partir de los datos binarios RGB de la imagen:** 
+![Imagen a audio](lazarus2.jpg)
 
 ---
 
@@ -92,7 +96,6 @@
 - **Recuperación bidireccional:** Poder convertir un audio mp3 en una imagen y, a partir de esa imagen, recuperar el audio original. Lo mismo para imágenes convertidas en audio.
 - **Mejor calidad de audio:** Lograr que los audios generados desde imágenes sean menos "feos" o caóticos, y más musicales o armónicos.
 - **Mejorar la experiencia de usuario:** Más comandos, mensajes explicativos y soporte multi-plataforma.
-- **Despliegue 24/7:** Hospedar el bot en un servidor para que esté siempre disponible.
 
 ---
 
@@ -108,4 +111,4 @@ Abre un [issue](https://github.com/Snex-21/Lazarus/issues) en el repositorio.
 
 ---
 
-**Hecho con gusto y dedicación por Snex**
+>**Hecho con gusto y dedicación por Snex**

@@ -11,10 +11,13 @@ api_hash = os.getenv('api_hash')
 token = os.getenv('token_bot')
 
 def tranformacion_image2audio():
-    #abro la imagen y la paso en formato RGB
+    #busco la ruta absoluta del directorio y despues la convino con las rutas de las subcarpetas
     base_dir = os.getcwd()
     imagen_path = os.path.join(base_dir, 'archivos', 'imagenes', 'ultima_imagen.jpg')
+    
+    #abro la imagen y la paso en formato RGB
     photo = Image.open(imagen_path).convert('RGB')
+    
     #convierto la imagen en un array
     array = np.array(photo)
     
@@ -47,15 +50,18 @@ def tranformacion_image2audio():
     channels = 1 #mono, un solo canal. si se pusieran dos se usarion los canales por separado (R y G) (PROBAR EN UN FUTURO)
     )
     
-    #guardo el audio
+    #rutas de las subcarpetas
     imagen_audio_path = os.path.join(base_dir, 'archivos', 'audios', 'imagen_audio.mp3')
+    #guardo el audio
     audio.export(imagen_audio_path, format='mp3')
 
-# TERMINAR DE DOCUMENTAR
+
 def transformacion_audio2image():
-    #marco el ultimo audio en una variable
+    #busco la ruta absoluta del directorio y despues la convino con las rutas de las subcarpetas
     base_dir = os.getcwd()
     audio_path = os.path.join(base_dir, 'archivos', 'audios', 'ultimo_audio.mp3')
+    
+    #marco el ultimo audio en una variable
     audio = AudioSegment.from_file(audio_path)
     
     #transformo los samples del audio en un array
@@ -89,6 +95,7 @@ def transformacion_audio2image():
     img_array = np.stack([samples_r, samples_g, samples_b], axis=-1)
 
     img = Image.fromarray(img_array.astype(np.uint8))
-    #guardo la imagen
+    #rutas de las subcarpetas
     audio_imagen_path = os.path.join(base_dir, 'archivos', 'imagenes', 'audio_imagen.jpg')
+    #guardo la imagen
     img.save(audio_imagen_path)

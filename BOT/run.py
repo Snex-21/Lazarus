@@ -1,8 +1,6 @@
 from pyrogram import Client, filters
-from pyrogram.types import Message
-from flask import Flask, request
+from flask import Flask
 import os
-import requests
 import main 
 
 #se crea la coneccion al bot
@@ -12,8 +10,10 @@ bot = Client('Lazarus!',
     bot_token = main.token,
 )
 
+#creo la app web con Flask
 app = Flask(__name__)
 
+#pagina principal del bot
 @app.route('/', methods=['GET'])
 def home():
     return 'bot funcionando', 200
@@ -30,10 +30,13 @@ ultima_foto = None
 @bot.on_message(filters.photo)
 def recibir_imagen(client, message):
     global ultima_foto
-    #descargo la imagen que paso el usuario
+    
+    #busco la ruta absoluta del directorio y despues la convino con las rutas de las subcarpetas
     base_dir = os.getcwd()
     imagen_path = os.path.join(base_dir, 'archivos', 'imagenes', 'ultima_imagen.jpg')
+    #descargo la imagen que paso el usuario
     ultima_foto = client.download_media(message, imagen_path)
+    
     #mensajito
     message.reply_text('Imagen recibida, ahora te la transformo en audio :)')
 
@@ -43,8 +46,10 @@ def recibir_imagen(client, message):
     #mando un mensaje
     message.reply_text('Tu imagen ya fue convertida a audio, esperame un momento que ya te la mando :)')
     
-    #mando el audio
+    #rutas de las subcarpetas
     imagen_audio_path = os.path.join(base_dir, 'archivos', 'audios', 'imagen_audio.mp3')
+    
+    #mando el audio
     client.send_audio(
         chat_id = message.chat.id,
         audio = imagen_audio_path,
@@ -60,9 +65,10 @@ ultimo_audio = None
 async def recibir_audio(client, message):
     global ultimo_audio
     
-    #descargo el ultimo audio
+    #busco la ruta absoluta del directorio y despues la convino con las rutas de las subcarpetas
     base_dir = os.getcwd()
     audio_path = os.path.join(base_dir, 'archivos', 'audios', 'ultimo_audio.mp3')
+    #descargo el ultimo audio
     ultimo_audio = await client.download_media(message, audio_path)
     
     #mando un mensaje
@@ -73,8 +79,11 @@ async def recibir_audio(client, message):
     
     #mando otro mensaje
     await message.reply_text('Tu audio ya fue transformado en imagen, ahora te la muesto :)')
-    #mando la imagen
+    
+    #rutas de las subcarpetas
     audio_imagen_path = os.path.join(base_dir, 'archivos', 'imagenes', 'audio_imagen.jpg')
+    
+    #mando la imagen
     await client.send_photo(
         chat_id = message.chat.id,
         photo = audio_imagen_path,
@@ -100,6 +109,7 @@ def easter_egg(client, message):
     message.reply_text('gracias por usar Lazarus, con todo gusto\n\n              -Snex')
 
 #corro el bot
+#esto hace que un webhook corra a la par de Flask asi puede correr el bot sin detenerlo (por bot.run())
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
