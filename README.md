@@ -96,6 +96,7 @@
 - **Recuperación bidireccional:** Poder convertir un audio mp3 en una imagen y, a partir de esa imagen, recuperar el audio original. Lo mismo para imágenes convertidas en audio.
 - **Mejor calidad de audio:** Lograr que los audios generados desde imágenes sean menos "feos" o caóticos, y más musicales o armónicos.
 - **Mejorar la experiencia de usuario:** Más comandos, mensajes explicativos y soporte multi-plataforma.
+- **Soporte para grupos:** extender el funcionamiento del bot a chats grupales, adaptando los comandos y respuestas al contexto de múltiples participantes.
 
 ---
 
