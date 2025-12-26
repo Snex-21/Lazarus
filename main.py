@@ -1,11 +1,11 @@
 from src.bot import Lazarus
 from src.claves import config as cg
-from src.server.server import run_server
+from src.server.server import run_flask
 from threading import Thread
 
 if __name__ == '__main__':
     # se inicia el servidor en un hilo separado para no bloquear al bot
-    flask_thread = Thread(target=run_server)
+    flask_thread = Thread(target=run_flask)
     flask_thread.daemon = True
     flask_thread.start()
     
