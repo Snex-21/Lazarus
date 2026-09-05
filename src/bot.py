@@ -32,15 +32,15 @@ class Lazarus:
         
         # comando /start para cuando se inicia el bot
         @self.bot.on_message(filters.command('start'))
-        def start(client, message):
-            message.reply_text('Hola, me llamo Lazarus! Soy un bot capaz de convertir imagenes en audios (aunque se escuche todo raro) y audios en imagenes (aunque se vean como glich)')
-            message.reply_text('para ver como funciono, mis limites y mis capacidades bien especificadas, usa el comando /info ') #mejorar estos mensajes
+        async def start(client, message):
+            await message.reply_text('Hola, me llamo Lazarus! Soy un bot capaz de convertir imagenes en audios (aunque se escuche todo raro) y audios en imagenes (aunque se vean como glich)')
+            await message.reply_text('para ver como funciono, mis limites y mis capacidades bien especificadas, usa el comando /info ') #mejorar estos mensajes
             
         # comando /info para ver informacion del bot
         @self.bot.on_message(filters.command('info'))
-        def info_command(client, message):
+        async def info_command(client, message):
             # pposible mejora de este texto
-            message.reply_text("Hola, soy Lazarus.\n\n"
+            await message.reply_text("Hola, soy Lazarus.\n\n"
                 "Fui creado para experimentar con la conexión entre el sonido y la imagen.\n\n"
                 "Qué hago:\n"
                 "Puedo transformar imágenes (.jpg) en audios (.mp3) (suenan extraños, pero cada uno guarda algo único de la imagen).\n"
@@ -109,10 +109,10 @@ class Lazarus:
                 )
             
         @self.bot.on_message(filters.command('easteregg'))
-        def easter_egg(client, message):
-            message.reply_text('felicidades! encontraste mi easter egg en mi proyecto, espero no lo hayas descubierto revisando el code . _.')
-            message.reply_text('como easter egg y dato curioso, este proyecto se inspira y lleva el nombre de un anime que se transmitia en la temporada de invierno y que obviamente me vi. mi reseña del anime, buena la historia, desarollo bien para ser que solo es una temporada de 12 eps pero el final....me esperaba algo mas emocionante (sin spoilers para el que lo quiera ver).')
-            message.reply_text('gracias por usar Lazarus, con todo gusto\n\n              -Snex')
+        async def easter_egg(client, message):
+            await message.reply_text('felicidades! encontraste mi easter egg en mi proyecto, espero no lo hayas descubierto revisando el code . _.')
+            await message.reply_text('como easter egg y dato curioso, este proyecto se inspira y lleva el nombre de un anime que se transmitia en la temporada de invierno y que obviamente me vi. mi reseña del anime, buena la historia, desarollo bien para ser que solo es una temporada de 12 eps pero el final....me esperaba algo mas emocionante (sin spoilers para el que lo quiera ver).')
+            await message.reply_text('gracias por usar Lazarus, con todo gusto\n\n              -Snex')
         
     def run(self):
         self.bot.run()
@@ -123,12 +123,12 @@ class Transformador:
         CreacionCarpetas()
     
     # metodo para transformar imagen en audio
-    def tranformacion_image2audio(self):
-        # ruta absoluta + ruta donde se guarda la ultima imagen
-        self.image_path = cg.root_dir / 'archivos' / 'imagenes' / 'ultima_imagen.jpg'
+    def tranformacion_image2audio(self, input_path=None, output_path=None):
+        image_path = input_path or (cg.root_dir / 'archivos' / 'imagenes' / 'ultima_imagen.jpg')
+        audio_output_path = output_path or (cg.root_dir / 'archivos' / 'audios' / 'imagen_audio.mp3')
         
         #abro la imagen y la paso en formato RGB
-        photo = Image.open(self.image_path).convert('RGB')
+        photo = Image.open(image_path).convert('RGB')
         
         #convierto la imagen en un array
         array = np.array(photo)
@@ -162,17 +162,15 @@ class Transformador:
         channels = 1 #mono, un solo canal. si se pusieran dos se usarion los canales por separado (R y G) (PROBAR EN UN FUTURO)
         )
         
-        # ruta absoluta + ruta donde se guarda la imagen convertida en audio
-        self.imagen_audio_path = cg.root_dir / 'archivos' / 'audios' / 'imagen_audio.mp3'
         #guardo el audio
-        audio.export(self.imagen_audio_path, format='mp3')
+        audio.export(audio_output_path, format='mp3')
     
-    def transformacion_audio2image(self):
-        # ruta absoluta + ruta donde se guarda el ultimo audio
-        self.audio_path = cg.root_dir / 'archivos' / 'audios' / 'ultimo_audio.mp3'
+    def transformacion_audio2image(self, input_path=None, output_path=None):
+        audio_input_path = input_path or (cg.root_dir / 'archivos' / 'audios' / 'ultimo_audio.mp3')
+        image_output_path = output_path or (cg.root_dir / 'archivos' / 'imagenes' / 'audio_imagen.jpg')
         
         #marco el ultimo audio en una variable
-        audio = AudioSegment.from_file(self.audio_path)
+        audio = AudioSegment.from_file(audio_input_path)
         
         #transformo los samples del audio en un array
         samples = np.array(audio.get_array_of_samples())
@@ -205,18 +203,16 @@ class Transformador:
         img_array = np.stack([samples_r, samples_g, samples_b], axis=-1)
 
         img = Image.fromarray(img_array.astype(np.uint8))
-        # ruta absoluta + ruta donde se guarda el audio convertido en imagen
-        self.audio_imagen_path = cg.root_dir / 'archivos' / 'imagenes' / 'audio_imagen.jpg'
         #guardo la imagen
-        img.save(self.audio_imagen_path)
+        img.save(image_output_path)
 
 # clase para crear las carpetas necesarias
 class CreacionCarpetas:
     def __init__(self):
-        # las carpetas y las rutas
-        self.base_dir = 'archivos'
-        self.audios_dir = os.path.join(self.base_dir, 'audios')
-        self.imagenes_dir = os.path.join(self.base_dir, 'imagenes')
+        # las carpetas y las rutas absolutas usando root_dir
+        self.base_dir = cg.root_dir / 'archivos'
+        self.audios_dir = self.base_dir / 'audios'
+        self.imagenes_dir = self.base_dir / 'imagenes'
         
         self.crear_carpetas()
     

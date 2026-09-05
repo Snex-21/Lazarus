@@ -41,7 +41,7 @@
 
 2. **Accede a la carpeta del bot**
    ```sh
-   cd Lazarus/BOT
+   cd Lazarus
    ```
 
 3. **Instala las dependencias**
@@ -55,7 +55,7 @@
    - En Mac: `brew install ffmpeg`
 
 5. **Crea el archivo de configuración `.env`**
-   - Renombra `.env.exemple` a `.env`
+   - Renombra `src/claves/.env.example` a `src/claves/.env` (o colócalo en la raíz)
    - Completa con tus datos:
      ```
      token_bot = la token del bot que se consigue en botfather
@@ -68,7 +68,7 @@
 
 6. **Ejecuta el bot**
    ```sh
-   python run.py
+   python main.py
    ```
 
 ---
