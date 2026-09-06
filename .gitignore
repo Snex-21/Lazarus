@@ -6,3 +6,4 @@ venv/
 .log
 *.session
 archivos/
+test_temp/
