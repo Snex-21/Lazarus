@@ -1,14 +1,15 @@
 # Lazarus - Telegram Bot
 
-**Lazarus** es un bot experimental para Telegram que transforma audios en imágenes glitch y viceversa: convierte imágenes en audios distorsionados. Es ideal para experimentar con la transferencia creativa de información entre medios y explorar los límites del arte digital.
+**Lazarus** es un bot experimental para Telegram que transforma imágenes en audios y audios en imágenes. La característica central del proyecto ya no es solo la transformación artística: ahora también incluye una aproximación a la **recuperación bidireccional**, es decir, el bot puede identificar archivos generados por él y reconstruir el original sin pérdida dentro de la lógica del proyecto.
+
 
 ---
 
 ## ¿Qué hace Lazarus?
 
-- **Convierte audios mp3 en imágenes glitch**: Envía un audio y recibirás una imagen generada a partir de ese audio.
-- **Convierte imágenes en audios distorsionados**: Envía una imagen y el bot te responderá con un audio basado en sus datos binarios RGB.
-- El proceso es unidireccional (por ahora): los audios generados a partir de imágenes suenan caóticos y las imágenes de los audios suelen ser glitch, no se puede recuperar el archivo original desde el convertido.
+- **Convierte imágenes en audio**: Envía una imagen y Lazarus la transforma en un archivo WAV que contiene la información de sus píxeles.
+- **Convierte audios en imagen**: Envía un audio y el bot genera una imagen PNG con datos estructurados a partir de sus muestras.
+- **Recuperación bidireccional**: Si reenvías un archivo generado por el bot, Lazarus reconstruye el archivo original dentro del esquema reversible diseñado para el proyecto.
 
 ---
 
@@ -28,6 +29,7 @@
    ```sh
    git clone https://github.com/Snex-21/Lazarus.git
    ```
+
 1.5. **(Recomendado) Crea un entorno virtual**
    ```sh
    python -m venv venv
@@ -39,7 +41,7 @@
    venv\Scripts\activate     # En Windows
    ```
 
-2. **Accede a la carpeta del bot**
+2. **Accede a la carpeta del proyecto**
    ```sh
    cd Lazarus
    ```
@@ -76,8 +78,21 @@
 ## Uso
 
 - **Comando principal:** `/start` inicia el bot.
-- **Comando secundario:** `/info` muestra instrucciones, límites y capacidades del bot (en desarrollo, puede variar).
-- **Interacción:** El bot funciona sin comandos adicionales. Simplemente envía un archivo de audio o una imagen y Lazarus responderá con la conversión correspondiente.
+- **Comando secundario:** `/info` muestra información general del sistema.
+- **Interacción habitual:** envía una imagen o un audio y Lazarus responderá con el flujo correspondiente.
+- **Recuperación**: si reenvías un archivo que había sido generado por Lazarus, el bot reconstruye el original usando la lógica reversible implementada en el conversor.
+
+---
+
+## Cómo funciona la recuperación bidireccional
+
+La idea central del proyecto es que el archivo generado no sea solo una transformación estética, sino una versión que contiene datos estructurados del original. En otras palabras:
+
+- una imagen se codifica en un audio con la información necesaria para reconstruirla;
+- un audio se codifica en una imagen con la información necesaria para reconstruirlo;
+- si ese archivo generado vuelve al bot, Lazarus reconoce la estructura y reconstruye el archivo original dentro del esquema del proyecto.
+
+Esto no es una restauración de un archivo comprimido o de un formato que se haya degradado por compresión externa; es una operación deliberada basada en la preservación de la estructura de datos que el bot genera.
 
 ---
 
@@ -91,12 +106,24 @@
 
 ---
 
+## Estado actual del proyecto
+
+El proyecto ya cuenta con la funcionalidad principal que lo define:
+
+- conversión de imagen a audio;
+- conversión de audio a imagen;
+- reconocimiento de archivos generados por Lazarus;
+- recuperación del original dentro del sistema de codificación del proyecto.
+
+
+---
+
 ## Ideas futuras
 
-- **Recuperación bidireccional:** Poder convertir un audio mp3 en una imagen y, a partir de esa imagen, recuperar el audio original. Lo mismo para imágenes convertidas en audio.
-- **Mejor calidad de audio:** Lograr que los audios generados desde imágenes sean menos "feos" o caóticos, y más musicales o armónicos.
-- **Mejorar la experiencia de usuario:** Más comandos, mensajes explicativos y soporte multi-plataforma.
-- **Soporte para grupos:** extender el funcionamiento del bot a chats grupales, adaptando los comandos y respuestas al contexto de múltiples participantes.
+- **Soporte para más formatos**: ampliar la compatibilidad y la lógica de importación/exportación sin perder integridad.
+- **Mejor calidad de audio**: lograr que los audios generados desde imágenes sean menos caóticos y más musicales o armónicos.
+- **Mejorar la experiencia de usuario**: más comandos, mensajes, y mejores caminos de interacción.
+- **Soporte para grupos**: extender la funcionalidad a chats grupales y adaptar la lógica al contexto del chat.
 
 ---
 

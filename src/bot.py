@@ -1,13 +1,10 @@
-from pyrogram import Client, filters
-from PIL import Image
-import numpy as np
-from pydub import AudioSegment
-from .claves import config as cg
 import os
+import uuid
+from pathlib import Path
+from pyrogram import Client, filters
+from .claves import config as cg
+from .converter import ReversibleConverter
 
-# variables globales
-ultima_foto = None
-ultimo_audio = None
 
 # la clase del bot (clase principal)
 class Lazarus:
@@ -16,6 +13,9 @@ class Lazarus:
         self.api_hash = api_hash
         self.token = token
         self.nombre = nombre
+        
+        # se asegura de que existan las carpetas necesarias
+        CreacionCarpetas()
         
         # se conecta al bot
         self.bot = Client(
@@ -33,80 +33,109 @@ class Lazarus:
         # comando /start para cuando se inicia el bot
         @self.bot.on_message(filters.command('start'))
         async def start(client, message):
-            await message.reply_text('Hola, me llamo Lazarus! Soy un bot capaz de convertir imagenes en audios (aunque se escuche todo raro) y audios en imagenes (aunque se vean como glich)')
-            await message.reply_text('para ver como funciono, mis limites y mis capacidades bien especificadas, usa el comando /info ') #mejorar estos mensajes
+            await message.reply_text(
+                'Hola, soy Lazarus.\n\n'
+                'Transformo imagenes en secuencias de audio y audios en estructuras visuales.\n'
+                'El proceso cuenta con recuperacion bidireccional: reenvia cualquier archivo generado para restaurar su estado original.\n\n'
+                'Consulta /info para conocer los detalles tecnicos y modo de operacion.'
+            )
             
         # comando /info para ver informacion del bot
         @self.bot.on_message(filters.command('info'))
         async def info_command(client, message):
-            # pposible mejora de este texto
-            await message.reply_text("Hola, soy Lazarus.\n\n"
-                "Fui creado para experimentar con la conexión entre el sonido y la imagen.\n\n"
-                "Qué hago:\n"
-                "Puedo transformar imágenes (.jpg) en audios (.mp3) (suenan extraños, pero cada uno guarda algo único de la imagen).\n"
-                "También convierto audios (.mp3) en imágenes (a veces abstractas, a veces tipo glitch).\n\n"
-                "Cómo usarme:\n"
-                "Solo enviame una imagen o un audio y esperá mi respuesta.\n\n"
-                "Aclaro que otros formatos aún no fueron testeados, así que lo mejor es usar .jpg (en su defecto png) y .mp3 por ahora.\n\n")
-        
-        #filtro para recibir las imagenes del usuario
-        @self.bot.on_message(filters.photo)
-        def recibir_imagen(client, message):
-            global ultima_foto
-            
-            # ruta absoluta + ruta donde se guarda la ultima imagen
-            self.imagen_path = cg.root_dir / 'archivos' / 'imagenes' / 'ultima_imagen.jpg'
-            #descargo la imagen que paso el usuario
-            ultima_foto = client.download_media(message, self.imagen_path)
-            
-            #mensajito
-            message.reply_text('Imagen recibida, ahora te la transformo en audio :)') #mejorar mensaje
-            
-            # uso la clase con su metodo para transformar la imagen en audio
-            Transformador().tranformacion_image2audio()
-            
-            #mando un mensaje
-            message.reply_text('Tu imagen ya fue convertida a audio, esperame un momento que ya te la mando :)') #mejorar mensaje
-            
-            # ruta absoluta + ruta donde se guarda la imagen convertida en audio
-            self.imagen_audio_path = cg.root_dir / 'archivos' / 'audios' / 'imagen_audio.mp3'
-            
-            #mando el audio
-            client.send_audio(
-                chat_id = message.chat.id,
-                audio = self.imagen_audio_path,
-                caption = 'tu imagen convertida a audio',
-                title = 'imagen convertida en audio',
-                performer = 'Lazarus',
+            await message.reply_text(
+                "Lazarus - Especificacion y uso:\n\n"
+                "1. Operacion:\n"
+                "- Envia una imagen para generar un audio WAV con su informacion de pixeles.\n"
+                "- Envia un audio para generar una imagen PNG estructurada a partir de sus muestras PCM.\n"
+                "- Reenvia un archivo generado previamente para recuperar el original sin perdida.\n\n"
+                "2. Formatos recomendados:\n"
+                "- Imagenes: PNG, JPG.\n"
+                "- Audios: WAV, MP3.\n\n"
+                "Nota: Para preservar la integridad de datos en la recuperacion, las imagenes generadas se transmiten como archivo."
             )
+        
+        # filtro para recibir imágenes (como foto o como documento de imagen)
+        @self.bot.on_message(filters.photo | (filters.document & filters.create(lambda _, __, m: bool(m.document and m.document.mime_type and m.document.mime_type.startswith('image/')))))
+        async def recibir_imagen(client, message):
+            file_id = uuid.uuid4().hex
+            input_path = cg.root_dir / 'archivos' / 'imagenes' / f'{file_id}_in.png'
+            output_audio = cg.root_dir / 'archivos' / 'audios' / f'{file_id}_out.wav'
             
-        @self.bot.on_message(filters.audio)
+            try:
+                await client.download_media(message, str(input_path))
+                
+                # Comprobar si es una imagen que ya contiene un audio Lazarus empaquetado (recuperación)
+                if ReversibleConverter.is_encoded_as_image(input_path):
+                    await message.reply_text('Secuencia de audio detectada en imagen. Recuperando archivo original...')
+                    recuperado = ReversibleConverter.image_to_audio_recovery(input_path, output_audio)
+                    if recuperado:
+                        await client.send_audio(
+                            chat_id=message.chat.id,
+                            audio=str(output_audio),
+                            caption='Audio original recuperado.',
+                            title='Audio Recuperado',
+                            performer='Lazarus',
+                        )
+                    else:
+                        await message.reply_text('Error: No fue posible reconstruir el audio desde los datos provistos.')
+                else:
+                    # Es una imagen nueva -> convertir a audio
+                    await message.reply_text('Imagen recibida. Procesando conversion a audio...')
+                    ReversibleConverter.image_to_audio(input_path, output_audio)
+                    await client.send_audio(
+                        chat_id=message.chat.id,
+                        audio=str(output_audio),
+                        caption='Conversion completada (WAV). Reenvia este audio para recuperar la imagen original.',
+                        title='Imagen a Audio',
+                        performer='Lazarus',
+                    )
+            except Exception as e:
+                await message.reply_text(f'Error durante el procesamiento: {e}')
+            finally:
+                if input_path.exists():
+                    input_path.unlink()
+                if output_audio.exists():
+                    output_audio.unlink()
+            
+        # filtro para recibir audios o documentos de audio
+        @self.bot.on_message(filters.audio | filters.voice | (filters.document & filters.create(lambda _, __, m: bool(m.document and m.document.mime_type and m.document.mime_type.startswith('audio/')))))
         async def recibir_audio(client, message):
-            global ultimo_audio
+            file_id = uuid.uuid4().hex
+            input_path = cg.root_dir / 'archivos' / 'audios' / f'{file_id}_in.wav'
+            output_image = cg.root_dir / 'archivos' / 'imagenes' / f'{file_id}_out.png'
             
-            # ruta absoluta + ruta donde se guarda el ultimo audio
-            self.audio_path = cg.root_dir / 'archivos' / 'audios' / 'ultimo_audio.mp3'
-            #descargo el ultimo audio
-            ultimo_audio = await client.download_media(message, self.audio_path)
-            
-            #mando un mensaje
-            await message.reply_text('Audio recibido, ahora lo transformo en imagen :)') #mejorar mensaje
-            
-            #uso la clase con su metodo para transformar el audio en imagen
-            Transformador().transformacion_audio2image()
-            
-            #mando otro mensaje
-            await message.reply_text('Tu audio ya fue transformado en imagen, ahora te la muesto :)') #mejorar mensaje
-            
-            # ruta absoluta + ruta donde se guarda el audio transformado en imagen
-            self.audio_imagen_path = cg.root_dir / 'archivos' / 'imagenes' / 'audio_imagen.jpg'
-            
-            #mando la imagen
-            await client.send_photo(
-                chat_id = message.chat.id,
-                photo = self.audio_imagen_path,
-                caption = 'Tu audio convertido en imagen'
-                )
+            try:
+                await client.download_media(message, str(input_path))
+                
+                # Comprobar si es un audio que ya contiene una imagen Lazarus empaquetada (recuperación)
+                if ReversibleConverter.is_encoded_as_audio(input_path):
+                    await message.reply_text('Estructura de imagen detectada en audio. Recuperando archivo original...')
+                    recuperado = ReversibleConverter.audio_to_image_recovery(input_path, output_image)
+                    if recuperado:
+                        await client.send_document(
+                            chat_id=message.chat.id,
+                            document=str(output_image),
+                            caption='Imagen original recuperada.'
+                        )
+                    else:
+                        await message.reply_text('Error: No fue posible reconstruir la imagen desde los datos provistos.')
+                else:
+                    # Es un audio nuevo -> convertir a imagen
+                    await message.reply_text('Audio recibido. Procesando conversion a imagen...')
+                    ReversibleConverter.audio_to_image(input_path, output_image)
+                    await client.send_document(
+                        chat_id=message.chat.id,
+                        document=str(output_image),
+                        caption='Conversion completada (PNG). Reenvia como archivo para recuperar el audio original.'
+                    )
+            except Exception as e:
+                await message.reply_text(f'Error durante el procesamiento: {e}')
+            finally:
+                if input_path.exists():
+                    input_path.unlink()
+                if output_image.exists():
+                    output_image.unlink()
             
         @self.bot.on_message(filters.command('easteregg'))
         async def easter_egg(client, message):
@@ -117,94 +146,6 @@ class Lazarus:
     def run(self):
         self.bot.run()
 
-# clase quue se encarga de pasar los audios a imagenes y las imagenes a audios
-class Transformador:
-    def __init__(self):
-        CreacionCarpetas()
-    
-    # metodo para transformar imagen en audio
-    def tranformacion_image2audio(self, input_path=None, output_path=None):
-        image_path = input_path or (cg.root_dir / 'archivos' / 'imagenes' / 'ultima_imagen.jpg')
-        audio_output_path = output_path or (cg.root_dir / 'archivos' / 'audios' / 'imagen_audio.mp3')
-        
-        #abro la imagen y la paso en formato RGB
-        photo = Image.open(image_path).convert('RGB')
-        
-        #convierto la imagen en un array
-        array = np.array(photo)
-        
-        #divido las partes del array para cada color
-        R = array[:, :, 0].flatten() #flatten() pasa la matriz d2 a un vector 1d
-        G = array[:, :, 1].flatten()
-        B = array[:, :, 2].flatten()
-
-        #escalo los valores para simular ondas de radio
-        R = np.interp(R, (0, 255), (-32768, 32767)). astype(np.int16) ##interp()=reescala los valores de un rango a otro
-            #pixeles de 0 a 255 son para valores de audio
-        G = np.interp(G, (0, 255), (-32768, 32767)). astype(np.int16)
-                                    #-32768, 32767 son los limites del tipo de dato in16 para el formato de audio PCM (es el tipico)(16 bits por muestra)
-        B = np.interp(B, (0, 255), (-10000, 10000)). astype(np.int16)
-                                    #el rango es menos para que no interfiera con los sonidos principales (cada uno de los valores anteriores va para un canal de la bocina)
-
-        #sumo el canal B a los canales R y G para tener solo dos canalaes
-        R_mod = np.clip(R + B,-32768, 32767) #canal izquirdo
-                # clip() se asegura que los valores no superen los limites
-        G_mod = np.clip(G + B,-32768, 32767) #canal derecho
-
-        #uno los dos canales, internamente es una array tipo en columna de dos de ancho
-        stereo = np.column_stack((R_mod, G_mod)).flatten() #flatten() lo convierte en una lista larga a modo de secuencia de muestras
-        
-        #creo el audio 
-        audio = AudioSegment(
-        stereo.tobytes(), #secuencia de bytes crudos (PCM)
-        frame_rate = 44100, #numero de muestras por segundo (calidad CD)
-        sample_width = 2, #cada muestra ocupa 2bytes int16 = 16bits
-        channels = 1 #mono, un solo canal. si se pusieran dos se usarion los canales por separado (R y G) (PROBAR EN UN FUTURO)
-        )
-        
-        #guardo el audio
-        audio.export(audio_output_path, format='mp3')
-    
-    def transformacion_audio2image(self, input_path=None, output_path=None):
-        audio_input_path = input_path or (cg.root_dir / 'archivos' / 'audios' / 'ultimo_audio.mp3')
-        image_output_path = output_path or (cg.root_dir / 'archivos' / 'imagenes' / 'audio_imagen.jpg')
-        
-        #marco el ultimo audio en una variable
-        audio = AudioSegment.from_file(audio_input_path)
-        
-        #transformo los samples del audio en un array
-        samples = np.array(audio.get_array_of_samples())
-        
-        #si el audio tiene dos canales (es estero) los divide. detecta si es estero y lo pasa a mono, basicamente agarra cada segunda muestra del audio para quedarse con un solo canal (PROXIMAMENTE PROBAR CON DOS CANALES)
-        if audio.channels == 2:
-            samples = samples[::2]
-
-        #esta funcion va poniendo los valores de arr linealmente desde su minimo hasta su maximo (PROXIMAMENTE PROBAR CON uint16 o uno mas grande)
-        def normalize(arr):
-            return np.interp(arr, (arr.min(), arr.max()), (0, 255)).astype(np.uint8)
-
-        #creo 3 canales con los submuestreos y despues aplico escalas de desplazamiento antes de normalizar a 0-255 para introducir diferencias entre R, G y B
-        samples_r = normalize(samples[::3] * 0.5 + 100)
-        samples_g = normalize(samples[100::3] * -1)
-        samples_b = normalize(samples[200::3] * 2)
-
-        #me aseguro que los tres canales tengan la misma longitud (EXPERIMENTAR CON LA IDEA DE QUE TENGAN DISTINTAS LONGITUDES)
-        min_len = min(len(samples_r), len(samples_g), len(samples_b))
-        samples_r, samples_g, samples_b = samples_r[:min_len], samples_g[:min_len], samples_b[:min_len]
-
-        #hago que la imagen sea cuadrada (PROBAR CON IMAGENES NO CUADRADAS)
-        lado = int(np.sqrt(min_len))
-        #recorto sobrantes para que sea lado por lado
-        samples_r = samples_r[:lado*lado].reshape((lado, lado))
-        samples_g = samples_g[:lado*lado].reshape((lado, lado))
-        samples_b = samples_b[:lado*lado].reshape((lado, lado))
-        
-        #creo un array para la imagen RGB
-        img_array = np.stack([samples_r, samples_g, samples_b], axis=-1)
-
-        img = Image.fromarray(img_array.astype(np.uint8))
-        #guardo la imagen
-        img.save(image_output_path)
 
 # clase para crear las carpetas necesarias
 class CreacionCarpetas:
