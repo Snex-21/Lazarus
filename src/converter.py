@@ -1,14 +1,24 @@
 import struct
 import math
 from pathlib import Path
+import numpy as np
 from PIL import Image
 from pydub import AudioSegment
 
 # Identificadores 'mágicos' (4 bytes) para saber qué tipo de archivo empaquetado es
 MAGIC_IMG = b"LZIM"  # Imagen codificada dentro de un audio
 MAGIC_AUD = b"LZAU"  # Audio codificado dentro de una imagen
+MAGIC_HARMONIC_IMG = b"LZHM"  # Firma mágica para imagen armónica
 
 DEFAULT_SAMPLE_RATE = 44100
+
+# Escala musical pentatónica / Lydian / Acordes enriquecidos (Frecuencias en Hz)
+PENTATONIC_FREQS = [
+    130.81, 146.83, 164.81, 196.00, 220.00,  # C3, D3, E3, G3, A3
+    261.63, 293.66, 329.63, 392.00, 440.00,  # C4, D4, E4, G4, A4
+    523.25, 587.33, 659.25, 783.99, 880.00,  # C5, D5, E5, G5, A5
+    1046.50, 1174.66, 1318.51, 1567.98       # C6, D6, E6, G6
+]
 
 
 class ReversibleConverter:
@@ -16,12 +26,12 @@ class ReversibleConverter:
     Módulo de conversión bidireccional exacta (sin pérdida / lossless).
     
     1. Imagen -> Audio (WAV):
-       Estructura del payload PCM:
-       [MAGIC_IMG (4B)] + [Width (4B)] + [Height (4B)] + [Raw RGB Bytes] + [Padding opcional (1B)]
+        Estructura del payload PCM:
+        [MAGIC_IMG (4B)] + [Width (4B)] + [Height (4B)] + [Raw RGB Bytes] + [Padding opcional (1B)]
     
     2. Audio -> Imagen (PNG):
-       Estructura del payload de píxeles:
-       [MAGIC_AUD (4B)] + [FrameRate (4B)] + [SampleWidth (2B)] + [Channels (2B)] + [AudioBytesLen (4B)] + [Raw PCM Bytes] + [Padding RGB (0-2B)]
+        Estructura del payload de píxeles:
+        [MAGIC_AUD (4B)] + [FrameRate (4B)] + [SampleWidth (2B)] + [Channels (2B)] + [AudioBytesLen (4B)] + [Raw PCM Bytes] + [Padding RGB (0-2B)]
     """
 
     @staticmethod
@@ -172,5 +182,140 @@ class ReversibleConverter:
             with Image.open(file_path) as img:
                 raw_data = img.convert("RGB").tobytes()
                 return raw_data.startswith(MAGIC_AUD)
+        except Exception:
+            return False
+
+    @staticmethod
+    def _generate_ambient_harmonics(img_rgb: Image.Image, total_samples: int) -> np.ndarray:
+        """Genera una pista musical armónica exuberante, cálida y extendida basada en la imagen."""
+        arr = np.array(img_rgb)
+        t = np.linspace(0, total_samples / DEFAULT_SAMPLE_RATE, total_samples, endpoint=False)
+        
+        avg_r = np.mean(arr[:, :, 0]) / 255.0
+        root_idx = int(avg_r * 5) % len(PENTATONIC_FREQS)
+        root_freq = PENTATONIC_FREQS[root_idx]
+        third_freq = PENTATONIC_FREQS[(root_idx + 2) % len(PENTATONIC_FREQS)]
+        fifth_freq = PENTATONIC_FREQS[(root_idx + 4) % len(PENTATONIC_FREQS)]
+        seventh_freq = PENTATONIC_FREQS[(root_idx + 6) % len(PENTATONIC_FREQS)]
+
+        vibrato = 1.0 + 0.003 * np.sin(2 * np.pi * 0.2 * t)
+        lfo = 0.5 + 0.5 * np.sin(2 * np.pi * 0.1 * t)
+        
+        carrier = 0.35 * np.sin(2 * np.pi * root_freq * t * vibrato)
+        carrier += 0.25 * np.sin(2 * np.pi * third_freq * t * vibrato + 0.6)
+        carrier += 0.20 * np.sin(2 * np.pi * fifth_freq * t * vibrato + 1.2)
+        carrier += 0.15 * np.sin(2 * np.pi * seventh_freq * t * vibrato + 1.8)
+        carrier *= lfo
+
+        step = max(1, total_samples // 32)
+        for seg in range(0, total_samples, step):
+            seg_end = min(total_samples, seg + step)
+            seg_len = seg_end - seg
+            decay = np.exp(-2.5 * np.linspace(0, 1, seg_len))
+            freq_idx = (root_idx + (seg // step) * 3) % len(PENTATONIC_FREQS)
+            arp_freq = PENTATONIC_FREQS[freq_idx]
+            carrier[seg:seg_end] += 0.18 * np.sin(2 * np.pi * arp_freq * t[seg:seg_end]) * decay
+
+        max_val = np.max(np.abs(carrier))
+        if max_val > 0:
+            carrier = carrier / max_val
+            
+        return (carrier * 24000).astype(np.int32)
+
+    @classmethod
+    def image_to_harmonic_audio(cls, image_path: str | Path, audio_output_path: str | Path) -> str:
+        """Codifica una imagen en un audio WAV armónico musical sin perder reversibilidad (Lossless)."""
+        image_path = Path(image_path)
+        audio_output_path = Path(audio_output_path)
+
+        with Image.open(image_path) as img:
+            img_rgb = img.convert("RGB")
+            width, height = img_rgb.size
+            raw_pixels = img_rgb.tobytes()
+
+        header = MAGIC_HARMONIC_IMG + struct.pack(">II", width, height)
+        payload = header + raw_pixels
+
+        total_bytes = len(payload)
+        total_samples = total_bytes * 2  # Cada byte requiere 2 muestras (4 bits c/u en LSB)
+
+        harmonics = cls._generate_ambient_harmonics(img_rgb, total_samples)
+
+        payload_arr = np.frombuffer(payload, dtype=np.uint8)
+        nibbles_high = (payload_arr >> 4) & 0x0F
+        nibbles_low = payload_arr & 0x0F
+        
+        nibbles = np.empty(total_samples, dtype=np.uint8)
+        nibbles[0::2] = nibbles_high
+        nibbles[1::2] = nibbles_low
+
+        carrier_masked = harmonics & ~0x0F
+        samples_pcm = (carrier_masked | nibbles).astype(np.int16)
+
+        audio = AudioSegment(
+            samples_pcm.tobytes(),
+            sample_width=2,
+            frame_rate=DEFAULT_SAMPLE_RATE,
+            channels=1
+        )
+        audio.export(str(audio_output_path), format="wav")
+        return str(audio_output_path)
+
+    @staticmethod
+    def harmonic_audio_to_image_recovery(audio_path: str | Path, image_output_path: str | Path) -> bool:
+        """Recupera la imagen idéntica bit a bit desde el audio armónico."""
+        audio_path = Path(audio_path)
+        image_output_path = Path(image_output_path)
+
+        audio = AudioSegment.from_file(str(audio_path))
+        samples = np.frombuffer(audio.raw_data, dtype=np.int16)
+
+        if len(samples) < 24:
+            return False
+
+        temp_nibbles = (samples[:24] & 0x0F).astype(np.uint8)
+        high_n = temp_nibbles[0::2] << 4
+        low_n = temp_nibbles[1::2]
+        temp_payload = (high_n | low_n).tobytes()
+
+        if len(temp_payload) < 12 or not temp_payload.startswith(MAGIC_HARMONIC_IMG):
+            return False
+
+        _, width, height = struct.unpack(">4sII", temp_payload[:12])
+        expected_pixel_bytes = width * height * 3
+        total_payload_bytes = 12 + expected_pixel_bytes
+        total_payload_samples = total_payload_bytes * 2
+
+        if len(samples) < total_payload_samples:
+            return False
+
+        nibbles = (samples[:total_payload_samples] & 0x0F).astype(np.uint8)
+        high_nibbles = nibbles[0::2] << 4
+        low_nibbles = nibbles[1::2]
+        payload = (high_nibbles | low_nibbles).tobytes()
+
+        _, width, height = struct.unpack(">4sII", payload[:12])
+        pixel_data = payload[12 : 12 + expected_pixel_bytes]
+
+        if len(pixel_data) < expected_pixel_bytes:
+            return False
+
+        img = Image.frombytes("RGB", (width, height), pixel_data)
+        img.save(str(image_output_path), format="PNG")
+        return True
+
+    @staticmethod
+    def is_encoded_as_harmonic_audio(file_path: str | Path) -> bool:
+        """Comprueba si un archivo de audio contiene una imagen armónica Lazarus empaquetada."""
+        try:
+            audio = AudioSegment.from_file(str(file_path))
+            samples = np.frombuffer(audio.raw_data, dtype=np.int16)
+            if len(samples) < 24:
+                return False
+            temp_nibbles = (samples[:24] & 0x0F).astype(np.uint8)
+            high_n = temp_nibbles[0::2] << 4
+            low_n = temp_nibbles[1::2]
+            temp_payload = (high_n | low_n).tobytes()
+            return temp_payload.startswith(MAGIC_HARMONIC_IMG)
         except Exception:
             return False

@@ -145,17 +145,64 @@ def test_flujo_audio_a_imagen_y_recuperacion(custom_audio_path: Path = None):
         print(">>> RESULTADO TEST 2: FALLO <<<")
 
 
+def test_flujo_imagen_a_audio_armonico_y_recuperacion(custom_image_path: Path = None):
+    print("\n" + "=" * 60)
+    print("TEST 3: Imagen -> Audio Armónico (WAV) -> Recuperar Imagen")
+    print("=" * 60)
+
+    # 1. Obtener o generar imagen original
+    if custom_image_path and custom_image_path.exists():
+        print(f"[+] Usando imagen personalizada: {custom_image_path}")
+        orig_img_path = custom_image_path
+    else:
+        print("[+] Generando imagen sintética de prueba (150x100 RGB)...")
+        orig_img_path = TEMP_DIR / "original_image_harmonic.png"
+        arr = np.random.randint(0, 256, (100, 150, 3), dtype=np.uint8)
+        img = Image.fromarray(arr)
+        img.save(orig_img_path, format="PNG")
+
+    audio_path = TEMP_DIR / "imagen_convertida_a_audio_armonico.wav"
+    recov_img_path = TEMP_DIR / "imagen_recuperada_armonico.png"
+
+    # 2. Convertir imagen a audio armónico
+    print("[1] Codificando imagen en audio armónico WAV...")
+    ReversibleConverter.image_to_harmonic_audio(orig_img_path, audio_path)
+    print(f"    -> Audio armónico generado: {audio_path.name}")
+
+    # 3. Detectar firma mágica
+    is_harmonic = ReversibleConverter.is_encoded_as_harmonic_audio(audio_path)
+    print(f"    -> ¿Audio contiene firma armónica Lazarus (LZHM)?: {is_harmonic}")
+    assert is_harmonic, "Error: No se detectó la cabecera mágica LZHM en el audio"
+
+    # 4. Recuperar imagen desde el audio armónico
+    print("[2] Recuperando imagen desde el audio armónico...")
+    recuperado_ok = ReversibleConverter.harmonic_audio_to_image_recovery(audio_path, recov_img_path)
+    assert recuperado_ok, "Error: Falló la recuperación de la imagen armónica"
+    print(f"    -> Imagen recuperada: {recov_img_path.name}")
+
+    # 5. Comparación bit a bit
+    with Image.open(orig_img_path) as i1, Image.open(recov_img_path) as i2:
+        orig_bytes = i1.convert("RGB").tobytes()
+        recov_bytes = i2.convert("RGB").tobytes()
+        dimensiones_iguales = (i1.size == i2.size)
+        bytes_iguales = (orig_bytes == recov_bytes)
+
+    print("\n--- Resultados Test 3 ---")
+    print(f"    Dimensiones coinciden: {dimensiones_iguales} ({i1.size} vs {i2.size})")
+    print(f"    Píxeles 100% idénticos bit a bit: {bytes_iguales}")
+
+    if dimensiones_iguales and bytes_iguales:
+        print(">>> RESULTADO TEST 3: ¡ÉXITO TOTAL (Lossless)! <<<")
+    else:
+        print(">>> RESULTADO TEST 3: FALLO <<<")
+
+
 if __name__ == "__main__":
     setup()
     try:
-        # Si tienes archivos propios puedes pasar sus rutas aquí, ej:
-        # test_flujo_imagen_a_audio_y_recuperacion(Path("lazarus.jpg"))
-        # test_flujo_audio_a_imagen_y_recuperacion(Path("tu_audio.wav"))
-        
-        # Ejecución por defecto con datos sintéticos autocontenidos:
         test_flujo_imagen_a_audio_y_recuperacion()
         test_flujo_audio_a_imagen_y_recuperacion()
+        test_flujo_imagen_a_audio_armonico_y_recuperacion()
     finally:
-        # Si deseas inspeccionar los archivos generados en test_temp/, comenta la siguiente línea:
-        # cleanup()
-        pass
+        cleanup()
+
