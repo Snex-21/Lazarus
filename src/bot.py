@@ -2,6 +2,7 @@ import os
 import uuid
 from pathlib import Path
 from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from .claves import config as cg
 from .converter import ReversibleConverter
 
@@ -46,7 +47,7 @@ class Lazarus:
             await message.reply_text(
                 "Lazarus - Especificacion y uso:\n\n"
                 "1. Operacion:\n"
-                "- Envia una imagen para generar un audio WAV con su informacion de pixeles.\n"
+                "- Envia una imagen para generar un audio WAV (Distorsionado o Armónico) con su informacion de pixeles.\n"
                 "- Envia un audio para generar una imagen PNG estructurada a partir de sus muestras PCM.\n"
                 "- Reenvia un archivo generado previamente para recuperar el original sin perdida.\n\n"
                 "2. Formatos recomendados:\n"
@@ -79,19 +80,69 @@ class Lazarus:
                         )
                     else:
                         await message.reply_text('Error: No fue posible reconstruir el audio desde los datos provistos.')
+                    if input_path.exists():
+                        input_path.unlink()
+                    if output_audio.exists():
+                        output_audio.unlink()
                 else:
-                    # Es una imagen nueva -> convertir a audio
-                    await message.reply_text('Imagen recibida. Procesando conversion a audio...')
-                    ReversibleConverter.image_to_audio(input_path, output_audio)
-                    await client.send_audio(
-                        chat_id=message.chat.id,
-                        audio=str(output_audio),
-                        caption='Conversion completada (WAV). Reenvia este audio para recuperar la imagen original.',
-                        title='Imagen a Audio',
-                        performer='Lazarus',
+                    # Es una imagen nueva -> ofrecer selección mediante Inline Keyboard
+                    keyboard = InlineKeyboardMarkup([
+                        [
+                            InlineKeyboardButton("Distorsionado (Raw PCM)", callback_data=f"mode_distorted:{file_id}"),
+                            InlineKeyboardButton("Armónico (Musical)", callback_data=f"mode_harmonic:{file_id}")
+                        ]
+                    ])
+                    await message.reply_text(
+                        "¿Qué modalidad de audio deseas generar?",
+                        reply_markup=keyboard
                     )
             except Exception as e:
                 await message.reply_text(f'Error durante el procesamiento: {e}')
+                if input_path.exists():
+                    input_path.unlink()
+                if output_audio.exists():
+                    output_audio.unlink()
+
+        # callback handler para la selección de tipo de audio
+        @self.bot.on_callback_query(filters.regex(r"^mode_(distorted|harmonic):(.+)$"))
+        async def procesar_opcion_audio(client, callback_query):
+            mode, file_id = callback_query.data.split(":", 1)
+            mode_type = mode.replace("mode_", "")
+            
+            input_path = cg.root_dir / 'archivos' / 'imagenes' / f'{file_id}_in.png'
+            output_audio = cg.root_dir / 'archivos' / 'audios' / f'{file_id}_out.wav'
+            
+            if not input_path.exists():
+                await callback_query.answer("El archivo original ya no está disponible. Por favor, envía la imagen de nuevo.", show_alert=True)
+                return
+                
+            await callback_query.answer()
+            
+            try:
+                if mode_type == "distorted":
+                    await callback_query.edit_message_text("Procesando conversión a Audio Distorsionado (PCM Raw)...")
+                    ReversibleConverter.image_to_audio(input_path, output_audio)
+                    caption_text = "Conversión a Audio Distorsionado completada (WAV).\nReenvía este audio para recuperar la imagen original."
+                    title_text = "Audio Distorsionado"
+                else:
+                    await callback_query.edit_message_text("Procesando conversión a Audio Armónico (Musical)...")
+                    ReversibleConverter.image_to_harmonic_audio(input_path, output_audio)
+                    caption_text = "Conversión a Audio Armónico completada (WAV).\nReenvía este audio para recuperar la imagen original."
+                    title_text = "Audio Armónico"
+                    
+                await client.send_audio(
+                    chat_id=callback_query.message.chat.id,
+                    audio=str(output_audio),
+                    caption=caption_text,
+                    title=title_text,
+                    performer="Lazarus",
+                )
+                try:
+                    await callback_query.message.delete()
+                except Exception:
+                    pass
+            except Exception as e:
+                await callback_query.edit_message_text(f"Error durante la conversión: {e}")
             finally:
                 if input_path.exists():
                     input_path.unlink()
@@ -108,9 +159,21 @@ class Lazarus:
             try:
                 await client.download_media(message, str(input_path))
                 
-                # Comprobar si es un audio que ya contiene una imagen Lazarus empaquetada (recuperación)
-                if ReversibleConverter.is_encoded_as_audio(input_path):
-                    await message.reply_text('Estructura de imagen detectada en audio. Recuperando archivo original...')
+                # Comprobar primero si es un audio armónico Lazarus
+                if ReversibleConverter.is_encoded_as_harmonic_audio(input_path):
+                    await message.reply_text('Audio detectado. Recuperando imagen original...')
+                    recuperado = ReversibleConverter.harmonic_audio_to_image_recovery(input_path, output_image)
+                    if recuperado:
+                        await client.send_document(
+                            chat_id=message.chat.id,
+                            document=str(output_image),
+                            caption='Imagen original recuperada.'
+                        )
+                    else:
+                        await message.reply_text('Error: No fue posible reconstruir la imagen desde el audio.')
+                # Comprobar si es un audio estándar Lazarus (recuperación)
+                elif ReversibleConverter.is_encoded_as_audio(input_path):
+                    await message.reply_text('Audio detectado. Recuperando imagen original...')
                     recuperado = ReversibleConverter.audio_to_image_recovery(input_path, output_image)
                     if recuperado:
                         await client.send_document(
@@ -119,7 +182,7 @@ class Lazarus:
                             caption='Imagen original recuperada.'
                         )
                     else:
-                        await message.reply_text('Error: No fue posible reconstruir la imagen desde los datos provistos.')
+                        await message.reply_text('Error: No fue posible reconstruir la imagen desde el audio.')
                 else:
                     # Es un audio nuevo -> convertir a imagen
                     await message.reply_text('Audio recibido. Procesando conversion a imagen...')
