@@ -1,6 +1,6 @@
 # Lazarus - Telegram Bot
 
-**Lazarus** es un bot experimental para Telegram que transforma imágenes en audios y audios en imágenes. La característica central del proyecto ya no es solo la transformación artística: ahora también incluye una aproximación a la **recuperación bidireccional**, es decir, el bot puede identificar archivos generados por él y reconstruir el original sin pérdida dentro de la lógica del proyecto.
+**Lazarus** es un bot experimental para Telegram que transforma imágenes en audios y audios en imágenes. La característica central del proyecto ya no es solo la transformación artística: ahora también incluye una la **recuperación bidireccional**, es decir, el bot puede identificar archivos generados por él y reconstruir el original sin pérdida dentro de la lógica del proyecto.
 
 
 ---
@@ -101,29 +101,31 @@ Esto no es una restauración de un archivo comprimido o de un formato que se hay
 - **Envía un mp3 y recibirás una imagen glitch generada a partir de ese audio:**
 ![Audio a imagen](lazarus.jpg)
 
-- **Envía una imagen y recibirás un audio distorsionado, generado a partir de los datos binarios RGB de la imagen:** 
+- **Envía una imagen y recibirás un audio distorsionado o armonico, generado a partir de los datos binarios RGB de la imagen:** 
 ![Imagen a audio](lazarus2.jpg)
 
 ---
 
 ## Estado actual del proyecto
 
-El proyecto ya cuenta con la funcionalidad principal que lo define:
+El proyecto cuenta con las siguientes funcionalidades clave:
 
-- conversión de imagen a audio;
-- conversión de audio a imagen;
-- reconocimiento de archivos generados por Lazarus;
-- recuperación del original dentro del sistema de codificación del proyecto.
-
+- **Conversión de imagen a audio con modalidades**:
+  - **Audio Distorsionado (PCM Raw)**: Ruido de datos binarios directos.
+  - **Audio Armónico (Musical)**: Generación musical ambient con escalas pentatónicas manteniendo reversibilidad bidireccional.
+- **Selección interactiva por botones**: Menú de teclado *Inline* para elegir la modalidad deseada al enviar una imagen.
+- **Conversión de audio a imagen**: Generación de imágenes *glitch art* a partir de muestras PCM.
+- **Reconocimiento y recuperación bidireccional**: Restauración sin pérdida bit a bit de archivos reenviados.
 
 ---
 
 ## Ideas futuras
 
-- **Soporte para más formatos**: ampliar la compatibilidad y la lógica de importación/exportación sin perder integridad.
-- **Mejor calidad de audio**: lograr que los audios generados desde imágenes sean menos caóticos y más musicales o armónicos.
-- **Mejorar la experiencia de usuario**: más comandos, mensajes, y mejores caminos de interacción.
-- **Soporte para grupos**: extender la funcionalidad a chats grupales y adaptar la lógica al contexto del chat.
+- [x] **Recuperación bidireccional:** Implementado 
+- [x] **Mejor calidad de audio**: Implementado (generación de audios armónicos/musicales mediante LSB en síntesis de tonos pentatónicos).
+- [x] **Mejorar la experiencia de usuario**: Implementado (menú interactivo con Inline Keyboards para elegir modalidad).
+- [ ] **Soporte para más formatos**: Ampliar la compatibilidad y la lógica de importación/exportación sin perder integridad.
+- [ ] **Soporte para grupos**: Extender la funcionalidad a chats grupales y adaptar la lógica al contexto del chat.
 
 ---
 
