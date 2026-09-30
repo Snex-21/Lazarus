@@ -8,6 +8,7 @@ load_dotenv()
 api_id = int(os.getenv('api_id'))
 api_hash = os.getenv('api_hash')
 token = os.getenv('token_bot')
+bd = os.getenv('url_db')
 
 from pathlib import Path
 

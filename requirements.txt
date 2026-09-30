@@ -10,6 +10,8 @@ Jinja2==3.1.6
 MarkupSafe==3.0.3
 numpy==2.3.3
 pillow==11.3.0
+psycopg==3.3.6
+psycopg-binary==3.3.6
 pyaes==1.6.1
 pydub==0.25.1
 Pyrogram==2.0.106
@@ -17,5 +19,7 @@ PySocks==1.7.1
 python-dotenv==1.1.1
 requests==2.32.5
 TgCrypto==1.2.5
+typing_extensions==4.16.0
+tzdata==2026.4
 urllib3==2.5.0
 Werkzeug==3.1.3

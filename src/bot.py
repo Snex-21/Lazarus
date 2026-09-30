@@ -5,6 +5,7 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from .claves import config as cg
 from .converter import ReversibleConverter
+from .bd import guardar_usuario
 
 
 # la clase del bot (clase principal)
@@ -31,6 +32,17 @@ class Lazarus:
     # comandos del bot
     def comandos(self):
         
+        # registrar ID de usuario automáticamente en la BD
+        @self.bot.on_message(group=-1)
+        async def registrar_usuario(client, message):
+            if message.from_user:
+                guardar_usuario(message.from_user.id)
+
+        @self.bot.on_callback_query(group=-1)
+        async def registrar_usuario_callback(client, callback_query):
+            if callback_query.from_user:
+                guardar_usuario(callback_query.from_user.id)
+
         # comando /start para cuando se inicia el bot
         @self.bot.on_message(filters.command('start'))
         async def start(client, message):
